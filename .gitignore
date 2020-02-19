@@ -1,1 +1,2 @@
-samples/*
+samples*
+__pycache__

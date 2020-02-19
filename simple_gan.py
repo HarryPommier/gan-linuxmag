@@ -30,7 +30,7 @@ def build_gan(generator, discriminator):
     model.add(discriminator)
     return model
 
-def train_gan(iterations, batch_size, sample_step, zdim):
+def train_gan(generator, discriminator, gan, iterations, batch_size, sample_step, z_dim, metrics, suffix):
     (X_train, _), (_, _) = fashion_mnist.load_data()
     X_train = X_train/127.5 - 1
     X_train = np.expand_dims(X_train, axis=3)
@@ -52,13 +52,14 @@ def train_gan(iterations, batch_size, sample_step, zdim):
         g_loss = gan.train_on_batch(z, real_label)
 
         if (iteration + 1)%sample_step == 0 or iteration == 0:
-            losses.append((d_loss, g_loss))
-            accuracies.append((100*accuracy))
-            iteration_checkpoints.append(iteration + 1)
+            metrics["losses"].append((d_loss, g_loss))
+            metrics["accuracies"].append(100*accuracy)
+            metrics["it_checkpoints"].append(iteration + 1)
             print("{} [D loss: {}, acc: {}] [G loss: {}]".format(iteration+1, d_loss, 100*accuracy, g_loss))
-            image_sample(generator, it = iteration+1)
+            it1 = iteration + 1
+            image_sample(generator, it1, z_dim, suffix)
 
-def image_sample(generator, it, img_per_row=4, img_per_col=4):
+def image_sample(generator, it, z_dim, suffix, img_per_row=4, img_per_col=4):
     z = np.random.normal(0, 1, (img_per_col*img_per_row, z_dim))
     img_gen = generator.predict(z)
     img_gen = 0.5*img_gen + 0.5
@@ -69,11 +70,12 @@ def image_sample(generator, it, img_per_row=4, img_per_col=4):
             ax[i, j].imshow(img_gen[cpt,:,:,0], cmap = "gray")
             ax[i, j].axis("off")
             cpt += 1
-    plt.savefig("samples/it_{}.jpg".format(it), format="jpg")
+    plt.savefig("samples{}/it_{}.jpg".format(suffix, it), format="jpg")
 
 
 if __name__ == "__main__":
-    os.makedirs("./samples", exist_ok = True)
+    sample_filename_suffix = "_simple" 
+    os.makedirs("./samples{}".format(sample_filename_suffix), exist_ok = True)
     z_dim = 100 
     img_height = 28
     img_width = 28
@@ -90,7 +92,5 @@ if __name__ == "__main__":
     iterations = 20000
     batch_size = 256 
     sample_step = 1000
-    losses = []
-    accuracies = []
-    iteration_checkpoints = []
-    train_gan(iterations, batch_size, sample_step, z_dim)
+    metrics = {"losses":[], "accuracies":[], "it_checkpoints":[]}
+    train_gan(generator, discriminator, gan, iterations, batch_size, sample_step, z_dim, metrics, sample_filename_suffix)
